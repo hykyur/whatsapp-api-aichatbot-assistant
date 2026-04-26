@@ -1,12 +1,11 @@
-from sqlmodel import Field, SQLModel, create_engine
+from sqlmodel import SQLModel, Field
 from datetime import datetime
 from enum import Enum
-
-
-load_dotenv()
+from user import User
 
 class MessageRole(str, Enum):
-    user      = "user"   
+    user      = "user"  
+    admin     = "admin" 
     assistant = "assistant"
 
 class MessageStatus (str, Enum):
@@ -21,5 +20,5 @@ class Message(SQLModel, table = true):
     user_id: int = Field(foreign_key="user.id")
     role: MessageRole
     body: str
-    status: MessageStatus = MessageRole.pending
+    status: MessageStatus
     created_at: datetime = Field(default_factory=datetime.utcnow)
