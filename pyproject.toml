@@ -1,0 +1,14 @@
+[project]
+name = "wppapi-chatbot"
+version = "0.1.0"
+description = "Whatsapp API integration for customer handeling with AI chatbot"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "fastapi[standard]>=0.136.1",
+    "jinja2>=3.1.6",
+    "sqlmodel>=0.0.38",
+    "uvicorn>=0.46.0",
+]
