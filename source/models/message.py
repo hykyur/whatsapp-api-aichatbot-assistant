@@ -7,6 +7,7 @@ class MessageRole(str, Enum):
     user      = "user"  
     admin     = "admin" 
     assistant = "assistant"
+    system    = "system"
 
 class MessageStatus (str, Enum):
     pending       = "pending"
