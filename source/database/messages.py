@@ -23,7 +23,6 @@ async def store_message(session: AsyncSession, name: str, phone: str, role: Mess
     session.add(message)
     await session.commit()
     await session.refresh(message)
-    return message
 
 
 async def read_user_messages(session: AsyncSession, phone: str) -> list[Message]:
@@ -47,4 +46,3 @@ async def update_message_status(session: AsyncSession, message_id: int, status: 
     session.add(message)
     await session.commit()
     await session.refresh(message)
-    return message

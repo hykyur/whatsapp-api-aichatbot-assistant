@@ -3,9 +3,11 @@ from datetime import datetime
 from enum import Enum
 from user import User
 
+# The MessageRole class is written according to the EasyInputMessage type from OpenAI API documentation, ref: https://developers.openai.com/api/reference/resources/responses#(resource)%20responses%20%3E%20(model)%20easy_input_message%20%3E%20(schema)
+
 class MessageRole(str, Enum):
-    user      = "user"  
-    admin     = "admin" 
+    user      = "user"
+    developer = "developer"
     assistant = "assistant"
     system    = "system"
 

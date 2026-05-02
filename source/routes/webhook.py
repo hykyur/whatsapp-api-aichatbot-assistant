@@ -7,7 +7,7 @@ init_db()
 session = get_session()
 app = FastAPI()
 
-@app.post("/whatsapp/message")
+@app.post("/whatsapp/webhook")
 async def read_message(request: Request) -> Response:
     json = request.json()
     name = json.get("name")
@@ -17,3 +17,5 @@ async def read_message(request: Request) -> Response:
     await store_message(session, name, phone, MessageRole.user, MessageStatus.pending)
 
     return Response("200 OK, MESSAGE LOADED INTO DATABASE", media_type = 'text/plain')
+
+#TODO: get route that sends back messages from the AI/ADMIN to the user
