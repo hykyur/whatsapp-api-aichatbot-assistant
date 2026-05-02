@@ -11,6 +11,7 @@ class MessageRole(str, Enum):
     assistant = "assistant"
     system    = "system"
 
+    
 class MessageStatus (str, Enum):
     pending       = "pending"
     ai_handled    = "ai_handled"
