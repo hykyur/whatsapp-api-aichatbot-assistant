@@ -8,7 +8,7 @@ from openai import OpenAI
 
 import source.crud.messages
 from source.models.message import MessageRole, Message
-from db import init_db, get_session
+from source.database.db import init_db, get_session
 
 load_dotenv()
 
