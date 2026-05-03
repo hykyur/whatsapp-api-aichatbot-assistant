@@ -1,48 +1,32 @@
-from sqlmodel import select
+from sqlmodel import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from source.models.message import MessageRole, MessageStatus, Message
 from source.models.user import User
 
+from typing import cast
 
-async def store_message(session: AsyncSession, name: str, phone: str, role: MessageRole, body: str, status: MessageStatus):
-    user = session.exec(select(User).where(User.phone == phone)).first()
-
+async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus,
+                        body: str):
+    result = await session.execute(select(User).where(phone == User.phone))
+    user = result.scalars().first()
     if user is None:
         user = User(name=name, phone=phone)
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        await session.flush()
 
-    message = Message(
-        user_id=user.id,
-        role=role,
-        body=body,
-        status=status
-    )
-
+    message = Message(user_id=user.id, role=role, status=status, body=body)
     session.add(message)
-    await session.commit()
-    await session.refresh(message)
-    
-async def read_user_messages(session: AsyncSession, phone: str) -> list[Message]:
-    user = session.exec(select(User).where(User.phone == phone)).first()
 
-    if user is None:
-        return []
 
-    results = session.exec(select(Message).where(Message.user_id == user.user_id))
-    return results.all()
+
+async def read_user_messages(session: AsyncSession, user_id: int) -> list[Message]:
+    result = await session.execute(select(Message).where(user_id == Message.user_id).order_by(Message.created_at))
+    return cast(list[Message], result.scalars().all())
 
 
 async def update_message_status(session: AsyncSession, message_id: int, status: MessageStatus):
-    result = session.exec(select(Message).where(Message.id == message_id))
-    message = result.first()
+    await session.execute(update(Message).where(Message.id == message_id).values(status=status))
 
-    if message is None:
-        raise ValueError(f"Message {message_id} not found")
 
-    message.status = status
-    session.add(message)
-    await session.commit()
-    await session.refresh(message)
-    
+async def update_user_message_status(session: AsyncSession, user_id: int, status: MessageStatus):
+    await session.execute(update(Message).where(Message.user_id == user_id).values(status=status))

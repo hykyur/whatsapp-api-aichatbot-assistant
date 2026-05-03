@@ -1,9 +1,12 @@
-from sqlmodel import SQLModel, Field
-from datetime import datetime
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey
+from sqlalchemy.types import DateTime
+from datetime import datetime, timezone
 from enum import Enum
-from user import User
 
-# The MessageRole class is written according to the EasyInputMessage type from OpenAI API documentation, ref: https://developers.openai.com/api/reference/resources/responses#(resource)%20responses%20%3E%20(model)%20easy_input_message%20%3E%20(schema)
+from source.models.base import Base
+
+
 
 class MessageRole(str, Enum):
     user      = "user"
@@ -11,18 +14,21 @@ class MessageRole(str, Enum):
     assistant = "assistant"
     system    = "system"
 
-    
-class MessageStatus (str, Enum):
-    pending       = "pending"
-    ai_handled    = "ai_handled"
-    escalated     = "escalated"
-    drafting      = "drafting"
-    sent          = "sent"
 
-class Message(SQLModel, table = true):
-    id: int | None = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
-    role: MessageRole
-    body: str
-    status: MessageStatus
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+class MessageStatus(str, Enum):
+    pending    = "pending"
+    ai_handled = "ai_handled"
+    escalated  = "escalated"
+    drafting   = "drafting"
+    sent       = "sent"
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id:         Mapped[int]           = mapped_column(primary_key=True)
+    user_id:    Mapped[int]           = mapped_column(ForeignKey("user.id"))
+    role:       Mapped[MessageRole]   = mapped_column(default=MessageRole.user)
+    status:     Mapped[MessageStatus]
+    body:       Mapped[str]
+    created_at: Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
