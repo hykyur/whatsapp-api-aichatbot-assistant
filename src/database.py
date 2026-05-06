@@ -2,17 +2,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 import ssl
 
-import os
-from dotenv import load_dotenv
-
-from source.models.base import Base
+from src.models import Base
+from src.config import DATABASE_URL
 
 # PostgreSQL jit is disabled due to asyncpg driver problems with enum types, see: https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.asyncpg
 # set an additional argument echo=True to print everything for debugging purposes
 # both comments are relative to create_async_engine
-
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 ssl_context = ssl.create_default_context()
 

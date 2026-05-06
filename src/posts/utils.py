@@ -1,7 +1,6 @@
-from sqlmodel import select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from source.models.message import MessageRole, MessageStatus, Message
-from source.models.user import User
+from src.models import User, MessageRole, MessageStatus, Message
 
 from typing import cast
 

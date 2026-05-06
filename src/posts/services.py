@@ -1,15 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from dotenv import load_dotenv
-import os
 
 from openai import AsyncOpenAI
 
-from source.crud.messages import store_message, update_user_message_status
-from source.models.message import MessageRole, MessageStatus, Message
+from src.config import BUSINESS, OPEN_AI_API_KEY
+from src.posts.utils import store_message, update_user_message_status
+from src.models import MessageRole, MessageStatus, Message
 
-load_dotenv()
-business = os.getenv("BUSINESS")
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+client = AsyncOpenAI(api_key=OPEN_AI_API_KEY)
 
 def get_text(response):
     try:
@@ -33,12 +31,11 @@ async def ai_check_escalation(session: AsyncSession, user_id:int, conversation: 
             model="gpt-5.4-nano-2026-03-17",
             instructions="""
             You evaluate whether the conversation needs escalation to a human.
-
             You must answer ONLY with:
             - needs escalation
             - no escalation
-
             No punctuation. No explanation.
+            This is a tests message.
             """,
             temperature=0,
             input=parsed
@@ -49,7 +46,7 @@ async def ai_check_escalation(session: AsyncSession, user_id:int, conversation: 
         else:
             pass
     except Exception:
-        pass
+        await store_message(session, "developer", None, MessageRole.developer, MessageStatus.escalated, "debug")
 
 async def ai_reformulates(session: AsyncSession, sys_message: Message):
     try:
@@ -65,7 +62,7 @@ async def ai_reformulates(session: AsyncSession, sys_message: Message):
         text = get_text(response)
         await store_message(session, "LLM", None, MessageRole.system, MessageStatus.ai_handled, text)
     except Exception:
-        pass
+        await store_message(session, "developer", None, MessageRole.developer, MessageStatus.escalated, "debug")
 
 
 async def ai_response(session: AsyncSession, user_id: int, conversation: list[Message]) -> Message:
@@ -77,7 +74,7 @@ async def ai_response(session: AsyncSession, user_id: int, conversation: list[Me
         response = await client.responses.create(
             model="gpt-5.4-nano-2026-03-17",
             instructions=f"""
-            You are a professional customer support assistant for a {business}.
+            You are a professional customer support assistant for a {BUSINESS}.
             Answer clearly, politely, and concisely.
 
             Only output the reply to the client. Do not include explanations.
