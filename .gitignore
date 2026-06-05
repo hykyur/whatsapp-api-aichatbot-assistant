@@ -16,3 +16,6 @@ wheels/
 
 # Database
 *.db
+
+#
+.idea

@@ -21,6 +21,8 @@ def get_text(response):
 
 #TODO: MAKE A HELPER FUNCTION FOR PARSING
 
+#TODO: !!! TRY TO IMPROVE THE CONVERSATION LOGIC TO REDUCE TOKEN USAGE -> https://developers.openai.com/api/docs/guides/conversation-state
+
 async def ai_check_escalation(session: AsyncSession, user_id:int, conversation: list[Message]):
     parsed = []
     for message in conversation:
@@ -88,4 +90,5 @@ async def ai_response(session: AsyncSession, user_id: int, conversation: list[Me
     except Exception:
         await store_message(session, "LLM", None, MessageRole.developer, MessageStatus.escalated, "Weren't able to full fill the request.")
         return Message(user_id= user_id, role=MessageRole.developer, status=MessageStatus.escalated, body="Weren't able to full fill the request.")
+
 #TODO: maybe handle the phase parameter on the LLM calls (not sure if it's necessary)

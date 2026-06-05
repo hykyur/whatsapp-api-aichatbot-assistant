@@ -6,7 +6,7 @@ from typing import cast
 
 async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus,
                         body: str):
-    result = await session.execute(select(User).where(phone == User.phone))
+    result = await session.execute(select(User).where(User.phone == phone))
     user = result.scalars().first()
     if user is None:
         user = User(name=name, phone=phone)
@@ -19,7 +19,7 @@ async def store_message(session: AsyncSession, name: str, phone: str | None, rol
 
 
 async def read_user_messages(session: AsyncSession, user_id: int) -> list[Message]:
-    result = await session.execute(select(Message).where(user_id == Message.user_id).order_by(Message.created_at))
+    result = await session.execute(select(Message).where(Message.user_id == user_id).order_by(Message.created_at))
     return cast(list[Message], result.scalars().all())
 
 
