@@ -3,9 +3,9 @@ from src.celery.app import app
 from sqlalchemy import select
 from src.database import async_session
 
-from src.posts.services import ai_check_escalation, ai_reformulates, ai_response
+from src.posts.services import ai_check_escalation_token, ai_reformulates, ai_response
 
-from src.posts.utils import store_message, read_user_messages
+from src.posts.utils import store_message, update_message_status, read_user_drafts
 from src.models import Message, User, MessageRole, MessageStatus
 
 from src.config import META_API_VERSION, META_API_TOKEN, BUSINESS_PHONE_ID
@@ -28,43 +28,35 @@ def add_message(name: str, phone: str, body: str) -> str:
     return phone
 
 @app.task
-def check_escalation(phone: str) -> int | None:
+def check_escalation(phone: str) -> int:
     def _run():
         async def _inner():
             async with async_session() as session:
                 result = await session.execute(select(User.id).where(User.phone == phone))
-                user_id: int | None = result.scalar()
-
-                if user_id is None:
-                    print("user id not found") # placeholder, write an exception later
-                    return None
-
-                conversation = await read_user_messages(session, user_id)
-                await ai_check_escalation(session, user_id, conversation)
+                user_id: int = result.scalar()
+                await ai_check_escalation_token(session, user_id)
                 return user_id
 
         return async_to_sync(_inner)()
 
     return _run()
 
-@app.task
-def reformulate_drafts(user_id: int) -> int | None:
+
+'''@app.task
+def reformulate_drafts(user_id: int) -> int:
     def _run():
         async def _inner():
             async with async_session() as session:
-                conversation = await read_user_messages(session, user_id)
+                conversation = await read_user_drafts(session, user_id)
                 for message in conversation:
-                    if message.status == MessageStatus.drafting:
-                        await ai_reformulates(session, message)
+                    await ai_reformulates(session, user_id, message)
+                    await update_message_status(session, message.id, MessageStatus.ai_handled)
                 return user_id
 
         return async_to_sync(_inner)()
 
     return _run()
-    '''TODO: 
-    TRY TO DITCH THE FOR LOOP FOR EFFICIENCY 
-    -> REWRITING THE MESSAGE ON THE MOMENT OF WORKER INPUT
-    -> NEEDS THE LOGIC FOR THAT BEFOREHAND '''
+'''
 
 
 @app.task
@@ -72,8 +64,7 @@ def get_response(user_id: int) -> tuple[int, int]:
     def _run():
         async def _inner():
             async with async_session() as session:
-                conversation = await read_user_messages(session, user_id)
-                msg = await ai_response(session, user_id, conversation)
+                msg = await ai_response(session, user_id)
                 # assuming ai_response stores the message and returns a Message with .id
                 return msg.id, user_id
 
