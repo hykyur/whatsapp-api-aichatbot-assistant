@@ -23,5 +23,3 @@ async def read_message(request: Request, session = Depends(get_session)):
     chain(add_message.s(name, phone, body) | check_escalation.s() | get_response.s() | send_response.s())
 
     return {"status" : "ok"}
-
-

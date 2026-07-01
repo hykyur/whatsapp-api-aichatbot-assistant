@@ -14,6 +14,8 @@ import requests
 
 from asgiref.sync import async_to_sync
 
+#TODO: REPLACE CELERY WITH AN TASK MANAGEMENT BROKER THAT SUPPORTS NATIVELY ASYNC OPERATIONS, SUCH AS TASKIQ OR TEMPORAL
+
 @app.task
 def add_message(name: str, phone: str, body: str) -> str:
     # open async session
@@ -108,4 +110,3 @@ def send_response(message_id: int, user_id: int):
         return async_to_sync(_inner)()
 
     _run()
-
