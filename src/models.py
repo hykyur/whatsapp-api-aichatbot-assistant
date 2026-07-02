@@ -1,4 +1,3 @@
-from openai.types.realtime.conversation_created_event import Conversation
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import DateTime
@@ -16,7 +15,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     phone: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
-    openai_token: Mapped[Conversation | None] = mapped_column(nullable=False, unique=True)
+    openai_token: Mapped[str] = mapped_column(nullable=False, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
                                                  default=lambda: datetime.now(timezone.utc))
 

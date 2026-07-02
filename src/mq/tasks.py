@@ -1,4 +1,4 @@
-from src.celery.app import app
+from src.mq.celery import app
 
 from sqlalchemy import select
 from src.database import async_session
@@ -15,6 +15,7 @@ import requests
 from asgiref.sync import async_to_sync
 
 #TODO: REPLACE CELERY WITH AN TASK MANAGEMENT BROKER THAT SUPPORTS NATIVELY ASYNC OPERATIONS, SUCH AS TASKIQ OR TEMPORAL
+
 
 @app.task
 def add_message(name: str, phone: str, body: str) -> str:

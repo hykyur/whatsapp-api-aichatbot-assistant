@@ -5,7 +5,7 @@ from src.database import get_session
 
 from src.posts.models import Webhook
 
-from src.celery.tasks import add_message, check_escalation, get_response, send_response
+from src.mq.tasks import add_message, check_escalation, get_response, send_response
 
 router = APIRouter()
 

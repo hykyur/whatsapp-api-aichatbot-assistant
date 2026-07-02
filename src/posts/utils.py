@@ -1,8 +1,11 @@
-from openai.types.responses.responses_client_event_param import Conversation
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.posts.services import ai_gen_token
+
 from src.models import User, MessageRole, MessageStatus, Message
+from src.config import OPEN_AI_API_KEY
+from openai import AsyncOpenAI
+
+client = AsyncOpenAI(api_key= OPEN_AI_API_KEY)
 
 async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus,
                         body: str):
@@ -10,7 +13,7 @@ async def store_message(session: AsyncSession, name: str, phone: str | None, rol
     user = result.scalars().first()
     if user is None:
         if role == MessageRole.user:
-            openai_token = ai_gen_token()
+            openai_token = (await client.conversations.create()).id
             user = User(name=name, phone=phone, openai_token = openai_token)
             session.add(user)
             await session.flush()
@@ -31,7 +34,7 @@ async def read_user_conversation(session: AsyncSession, user_id: int) -> list[Me
         .order_by(Message.created_at)
     )
 
-    return await session.scalars(stmt).all()
+    return (await session.scalars(stmt)).all()
 
 async def read_user_drafts(session: AsyncSession, user_id:int) -> list[Message]:
     stmt = (
@@ -40,7 +43,7 @@ async def read_user_drafts(session: AsyncSession, user_id:int) -> list[Message]:
         .where(Message.status == "drafting")
     )
 
-    return await session.scalars(stmt).all()
+    return (await session.scalars(stmt)).all()
 
 async def update_message_status(session: AsyncSession, message_id: int, status: MessageStatus):
     await session.execute(update(Message).where(Message.id == message_id).values(status=status))
@@ -48,5 +51,5 @@ async def update_message_status(session: AsyncSession, message_id: int, status: 
 async def update_user_message_status(session: AsyncSession, user_id: int, status: MessageStatus):
     await session.execute(update(Message).where(Message.user_id == user_id).values(status=status))
 
-async def update_user_token(session: AsyncSession, user_id: int, token: Conversation):
+async def update_user_token(session: AsyncSession, user_id: int, token: str):
     await session.execute(update(User).where(User.id == user_id).values(openai_token=token))
