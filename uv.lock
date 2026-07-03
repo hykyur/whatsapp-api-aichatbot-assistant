@@ -1124,6 +1124,20 @@ wheels = [
 ]
 
 [[package]]
+name = "taskiq-pipelines"
+version = "0.1.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "taskiq" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/57/79/b099aec44fed65f077d88fa4e4a876b7f5b3b50f46f408feb36a4b3c3a71/taskiq_pipelines-0.1.4.tar.gz", hash = "sha256:0ccc58a7d5bc0f19457bf25aec6e8b3d82ce5e63ae4416bc85b47f027aede84b", size = 12885, upload-time = "2025-03-05T02:18:40.615Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/e2/0ba3c3797f466cebd5431d8ac70146704cc34346332127a19b2d5f6b28ac/taskiq_pipelines-0.1.4-py3-none-any.whl", hash = "sha256:09b4999f79e74552e4a751f4670c1829eaf494a28ee06d3f47ec5f6f5bf5105d", size = 15810, upload-time = "2025-03-05T02:18:39.041Z" },
+]
+
+[[package]]
 name = "taskiq-redis"
 version = "1.2.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1323,6 +1337,7 @@ dependencies = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "taskiq" },
     { name = "taskiq-aio-pika" },
+    { name = "taskiq-pipelines" },
     { name = "taskiq-redis" },
     { name = "tenacity" },
     { name = "uvicorn" },
@@ -1341,6 +1356,7 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.49" },
     { name = "taskiq", specifier = ">=0.12.4" },
     { name = "taskiq-aio-pika", specifier = ">=0.6.0" },
+    { name = "taskiq-pipelines", specifier = ">=0.1.4" },
     { name = "taskiq-redis", specifier = ">=1.2.3" },
     { name = "tenacity", specifier = ">=9.1.4" },
     { name = "uvicorn", specifier = ">=0.46.0" },

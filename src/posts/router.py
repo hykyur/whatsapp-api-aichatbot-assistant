@@ -1,25 +1,29 @@
-from fastapi import APIRouter, Request, Depends
-from celery import chain
-from src.database import get_session
-
+from fastapi import APIRouter, Request
 
 from src.posts.models import Webhook
 
-from src.mq.tasks import add_message, check_escalation, get_response, send_response
+from src.queues.pipeline import enqueue_message_pipe
 
 router = APIRouter()
 
 # TODO: TAKE ADVANTAGE OF THE FIELD FROM THE WEBHOOK TO MAKE DIFFERENT CHANGES ON THE DATABASE, E.G, phone_number_update (HANDLE MOST OF THE FIELDS TO ADAPT THE DATABASE)
 
 @router.post("/whatsapp/webhook")
-async def read_message(request: Request, session = Depends(get_session)):
+async def read_message(request: Request):
     json = await request.json()
     parsed = Webhook.model_validate(json)
 
-    name = parsed.entry[0].changes[0].value.contacts[0].profile.name
-    phone = parsed.entry[0].changes[0].value.contacts[0].wa_id
-    body = parsed.entry[0].changes[0].value.messages[0].text.body # None pode ser um problema?
+    value = parsed.entry[0].changes[0].value
+    if not value.messages or not value.contacts:
+        return {"status": "ignored"}
 
-    chain(add_message.s(name, phone, body) | check_escalation.s() | get_response.s() | send_response.s())
+    message = value.messages[0]
+    if message.type != "text" or not message.text:
+        return {"status": "ignored"}
 
-    return {"status" : "ok"}
+    name = value.contacts[0].profile.name
+    phone = value.contacts[0].wa_id
+    body = message.text.body
+    await enqueue_message_pipe(name, phone, body)
+
+    return {"status" : "queued"}

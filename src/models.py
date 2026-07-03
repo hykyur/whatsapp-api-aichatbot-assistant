@@ -15,9 +15,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     phone: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
-    openai_token: Mapped[str] = mapped_column(nullable=False, unique=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
-                                                 default=lambda: datetime.now(timezone.utc))
+    openai_token: Mapped[str | None] = mapped_column(nullable=True, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 class MessageRole(str, Enum):
     user = "user"

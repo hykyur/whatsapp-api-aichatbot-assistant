@@ -48,6 +48,4 @@ headers = {
 }
 
 
-response = requests.request("POST", url, json=data, headers=headers)
-
-print(response.json())
+requests.request("POST", url, json=data, headers=headers)

@@ -3,6 +3,7 @@ from src.posts.router import router as posts_router
 from contextlib import asynccontextmanager
 from src.database import init_db
 from src.config import META_VERIFY_TOKEN
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()

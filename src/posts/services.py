@@ -14,8 +14,10 @@ from src.config import BUSINESS, OPEN_AI_API_KEY
 from src.posts.utils import store_message, update_user_message_status, update_user_token, read_user_conversation
 from src.models import MessageRole, MessageStatus, Message, User
 from src.posts.exceptions import handle_openai_error, OpenAIAction
+from src.config import LLM_MODEL
 from datetime import datetime
 
+#TODO: CHANGE THE MESSAGE STATUS BASED ON WHAT IS HAPPENING WITH THE MESSAGES
 
 RETRYABLE_OPENAI_ERRORS = (
     openai.RateLimitError,
@@ -85,7 +87,7 @@ async def ai_check_escalation_fallback(session: AsyncSession, user_id: int):
 
     try:
         response = await client.with_options(timeout = 100.0).responses.create(
-            model="gpt-5.4-nano-2026-03-17",
+            model=LLM_MODEL,
             instructions="""
                     You evaluate whether the conversation needs escalation to a human.
                     You must answer ONLY with:
@@ -113,7 +115,7 @@ async def ai_check_escalation_token(session: AsyncSession, user_id:int) -> bool:
         query = select(Message).where(Message.user_id == user_id).where(Message.role == MessageRole.user).order_by(Message.created_at.desc())
         last_user_message: Message = (await session.scalars(query)).first()
         response = await client.with_options(timeout = 100.0).responses.create(
-            model="gpt-5.4-nano-2026-03-17",
+            model=LLM_MODEL,
             instructions="""
             You evaluate whether the conversation needs escalation to a human.
             You must answer ONLY with:
@@ -141,7 +143,7 @@ async def ai_reformulates(session: AsyncSession, user_id: int, sys_message: Mess
     phone = (await session.scalars(select(User.phone).where(User.id == user_id))).first()
     try:
         response = await client.with_options(timeout = 100.0).responses.create(
-            model="gpt-5.4-nano-2026-03-17",
+            model=LLM_MODEL,
             instructions="""
             Rewrite the following message to be more formal and professional.
             Do not change its meaning.
@@ -160,7 +162,7 @@ async def ai_response(session: AsyncSession, user_id: int) -> Message:
     phone = (await session.scalars(select(User.phone).where(User.id == user_id))).first()
     try:
         response = await client.with_options(timeout = 100.0).responses.create(
-            model="gpt-5.4-nano-2026-03-17",
+            model=LLM_MODEL,
             instructions=f"""
             You are a professional customer support assistant for a {BUSINESS}.
             Answer clearly, politely, and concisely.
