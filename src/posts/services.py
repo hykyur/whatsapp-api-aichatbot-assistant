@@ -11,7 +11,7 @@ from tenacity import (
 )  # for exponential backoff
 
 from src.config import BUSINESS, OPEN_AI_API_KEY
-from src.posts.utils import store_message, update_user_message_status, update_user_token, read_user_conversation
+from src.posts.utils import store_message, store_message_user_id, update_user_message_status, update_user_token, read_user_conversation
 from src.models import MessageRole, MessageStatus, Message, User
 from src.posts.exceptions import handle_openai_error, OpenAIAction
 from src.config import LLM_MODEL
@@ -152,7 +152,7 @@ async def ai_reformulates(session: AsyncSession, user_id: int, sys_message: Mess
             input=sys_message.body
         )
         text = get_text(response)
-        await store_message(session, "LLM", phone, MessageRole.system, MessageStatus.ai_handled, text)
+        await store_message_user_id(session, user_id, MessageRole.assistant, MessageStatus.ai_handled, text)
 
     except Exception as e:
         await log_raise(session, e)
@@ -173,7 +173,7 @@ async def ai_response(session: AsyncSession, user_id: int) -> Message:
             conversation = await get_conversation_token(session, user_id)
         )
         text = get_text(response)
-        await store_message(session, "LLM", phone, MessageRole.assistant, MessageStatus.ai_handled, text)
+        await store_message_user_id(session, user_id, MessageRole.assistant, MessageStatus.ai_handled, text)
         return Message(user_id= user_id, role= MessageRole.assistant, status= MessageStatus.ai_handled, body= text)
 
     except Exception as e:

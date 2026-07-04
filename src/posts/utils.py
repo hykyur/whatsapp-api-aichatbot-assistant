@@ -7,6 +7,8 @@ from openai import AsyncOpenAI
 
 client = AsyncOpenAI(api_key=OPEN_AI_API_KEY)
 
+#TODO: REWRITE THE STORE MESSAGE AND STORE USER FUNCTIONS(PERHAPS)
+
 async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus,
                         body: str):
     result = await session.execute(select(User).where(User.phone == phone))
@@ -23,6 +25,11 @@ async def store_message(session: AsyncSession, name: str, phone: str | None, rol
         await session.flush()
 
     message = Message(user_id=user.id, role=role, status=status, body=body)
+    session.add(message)
+    await session.flush()
+
+async def store_message_user_id(session: AsyncSession, user_id: int, role: MessageRole, status: MessageStatus, body: str):
+    message = Message(user_id = user_id, role=role, status=status, body=body)
     session.add(message)
     await session.flush()
 
