@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 
-from src.posts.models import Webhook
+from src.posts.schemas import Webhook
 
 from src.queues.pipeline import enqueue_message_pipe
 

@@ -1,13 +1,28 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
+from pydantic import PostgresDsn, AmqpDsn, RedisDsn
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-BUSINESS = os.getenv("BUSINESS")
-OPEN_AI_API_KEY = os.getenv("OPENAI_API_KEY")
-META_API_VERSION = os.getenv("META_API_VERSION")
-META_API_TOKEN = os.getenv("META_API_TOKEN")
-META_VERIFY_TOKEN = os.getenv("META_VERIFY_TOKEN")
-BUSINESS_PHONE_ID = os.getenv("BUSINESS_PHONE_ID")
-BROKER_URL = os.getenv("BROKER_URL")
-LLM_MODEL = os.getenv("LLM_MODEL")
+from src.constants import Environment, Business
+
+class Config(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    DATABASE_URL: PostgresDsn
+    AMQP_URL: AmqpDsn
+    REDIS_URL: RedisDsn
+    OPENAI_API_KEY: str
+
+    META_API_TOKEN: str
+    META_API_VERSION: str
+    META_VERIFY_TOKEN: str
+
+    ENVIRONMENT:Environment = Environment.STAGING
+
+    BUSINESS: Business = Business.HOTEL
+
+    BUSINESS_PHONE_ID: str
+
+config = Config()

@@ -10,11 +10,11 @@ from tenacity import (
     wait_random_exponential, retry_if_exception_type,
 )  # for exponential backoff
 
-from src.config import BUSINESS, OPEN_AI_API_KEY
+from src.config import config
 from src.posts.utils import store_message, store_message_user_id, update_user_message_status, update_user_token, read_user_conversation
 from src.models import MessageRole, MessageStatus, Message, User
 from src.posts.exceptions import handle_openai_error, OpenAIAction
-from src.config import LLM_MODEL
+from src.posts.constants import LLM_MODEL
 from datetime import datetime
 
 #TODO: CHANGE THE MESSAGE STATUS BASED ON WHAT IS HAPPENING WITH THE MESSAGES
@@ -26,7 +26,10 @@ RETRYABLE_OPENAI_ERRORS = (
     openai.ConflictError,
 )
 
-client = AsyncOpenAI(api_key=OPEN_AI_API_KEY)
+OPENAI_API_KEY = config.OPENAI_API_KEY
+BUSINESS = config.BUSINESS
+
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 def get_text(response):
     try:

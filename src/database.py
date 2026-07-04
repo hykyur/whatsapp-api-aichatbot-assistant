@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 import ssl
 
 from src.models import Base
-from src.config import DATABASE_URL
+from src.config import config
+
+DATABASE_URL = str(config.DATABASE_URL)
 
 # PostgreSQL jit is disabled due to asyncpg driver problems with enum types, see: https://docs.sqlalchemy.org/en/14/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.asyncpg
 # set an additional argument echo=True to print everything for debugging purposes

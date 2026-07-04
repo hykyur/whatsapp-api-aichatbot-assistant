@@ -2,12 +2,12 @@ from sqlalchemy import select, update, null
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models import User, MessageRole, MessageStatus, Message
-from src.config import OPEN_AI_API_KEY
+from src.config import config
 from openai import AsyncOpenAI
 
-client = AsyncOpenAI(api_key=OPEN_AI_API_KEY)
+OPENAI_API_KEY = config.OPENAI_API_KEY
 
-#TODO: REWRITE THE STORE MESSAGE AND STORE USER FUNCTIONS(PERHAPS)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus,
                         body: str):

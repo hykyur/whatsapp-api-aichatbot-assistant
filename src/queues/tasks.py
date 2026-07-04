@@ -1,14 +1,18 @@
-#tasks.py
-
 from sqlalchemy import select
 from src.queues.broker import broker
 from src.database import async_session
 from src.posts.services import ai_check_escalation_token, ai_response
 from src.posts.utils import store_message
 from src.models import Message, User, MessageRole, MessageStatus
-from src.config import META_API_VERSION, META_API_TOKEN, BUSINESS_PHONE_ID
+from src.config import config
 
 import requests
+
+# .env variables
+META_API_VERSION = config.META_API_VERSION
+BUSINESS_PHONE_ID = config.BUSINESS_PHONE_ID
+META_API_TOKEN = config.META_API_TOKEN
+
 
 @broker.task
 async def add_message(name: str, phone: str, body: str) -> str:
@@ -46,7 +50,6 @@ async def get_response(user_id: int) -> tuple[int, int]:
         msg = await ai_response(session, user_id)
         # assuming ai_response stores the message and returns a Message with .id
         return msg.id, user_id
-
 
 @broker.task
 async def send_response(message_id: int, user_id: int):
