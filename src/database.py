@@ -1,9 +1,23 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from collections.abc import AsyncIterator
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy import MetaData
 
 import ssl
 
 from src.models import Base
 from src.config import config
+
+
+POSTGRES_INDEXES_NAMING_CONVENTION = {
+    "ix": "%(column_0_label)s_idx",
+    "uq": "%(table_name)s_%(column_0_name)s_key",
+    "ck": "%(table_name)s_%(constraint_name)s_check",
+    "fk": "%(table_name)s_%(column_0_name)s_fkey",
+    "pk": "%(table_name)s_pkey",
+}
+metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
 
 DATABASE_URL = str(config.DATABASE_URL)
 
@@ -20,6 +34,6 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all) #type:ignore
 
-async def get_session(): #type:ignore
+async def get_session() -> AsyncIterator[AsyncSession]:
     async with async_session() as session:
-        yield session #type:ignore
+        yield session

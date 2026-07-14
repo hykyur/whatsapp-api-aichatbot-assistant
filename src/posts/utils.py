@@ -1,4 +1,4 @@
-from sqlalchemy import select, update, null
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models import User, MessageRole, MessageStatus, Message
@@ -9,11 +9,9 @@ OPENAI_API_KEY = config.OPENAI_API_KEY
 
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus,
-                        body: str):
-    result = await session.execute(select(User).where(User.phone == phone))
-    user = result.scalars().first()
-
+async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus, body: str):
+    stmt = select(User).where(User.phone == phone)
+    user = (await session.scalars(stmt)).first()
     if user is None:
         openai_token = None
         if role == MessageRole.user:
@@ -23,15 +21,17 @@ async def store_message(session: AsyncSession, name: str, phone: str | None, rol
         user = User(name=name, phone=phone, openai_token=openai_token)
         session.add(user)
         await session.flush()
+        await session.commit()
 
     message = Message(user_id=user.id, role=role, status=status, body=body)
     session.add(message)
     await session.flush()
+    await session.commit()
 
 async def store_message_user_id(session: AsyncSession, user_id: int, role: MessageRole, status: MessageStatus, body: str):
     message = Message(user_id = user_id, role=role, status=status, body=body)
     session.add(message)
-    await session.flush()
+    await session.commit()
 
 
 async def read_user_conversation(session: AsyncSession, user_id: int) -> list[Message]:

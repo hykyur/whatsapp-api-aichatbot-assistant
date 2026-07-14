@@ -143,7 +143,6 @@ async def ai_check_escalation_token(session: AsyncSession, user_id:int) -> bool:
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
 async def ai_reformulates(session: AsyncSession, user_id: int, sys_message: Message):
-    phone = (await session.scalars(select(User.phone).where(User.id == user_id))).first()
     try:
         response = await client.with_options(timeout = 100.0).responses.create(
             model=LLM_MODEL,
@@ -161,8 +160,7 @@ async def ai_reformulates(session: AsyncSession, user_id: int, sys_message: Mess
         await log_raise(session, e)
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
-async def ai_response(session: AsyncSession, user_id: int) -> Message:
-    phone = (await session.scalars(select(User.phone).where(User.id == user_id))).first()
+async def ai_response(session: AsyncSession, user_id: int) -> Message | None:
     try:
         response = await client.with_options(timeout = 100.0).responses.create(
             model=LLM_MODEL,
@@ -177,7 +175,8 @@ async def ai_response(session: AsyncSession, user_id: int) -> Message:
         )
         text = get_text(response)
         await store_message_user_id(session, user_id, MessageRole.assistant, MessageStatus.ai_handled, text)
-        return Message(user_id= user_id, role= MessageRole.assistant, status= MessageStatus.ai_handled, body= text)
+        stmt = select(Message).where(Message.user_id == user_id).where(Message.role == MessageRole.assistant).order_by(Message.created_at.desc()).limit(1)
+        return (await session.scalars(stmt)).first()
 
     except Exception as e:
         await log_raise(session, e)
