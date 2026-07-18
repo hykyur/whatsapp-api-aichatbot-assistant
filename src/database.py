@@ -26,8 +26,8 @@ DATABASE_URL = str(config.DATABASE_URL)
 # both comments are relative to create_async_engine
 
 ssl_context = ssl.create_default_context()
-
-engine = create_async_engine(DATABASE_URL, connect_args={"server_settings": {"jit": "off"}, "ssl": ssl_context}) #type:ignore
+# https://docs.sqlalchemy.org/en/20/core/pooling.html#disconnect-handling-pessimistic
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True, connect_args={"server_settings": {"jit": "off"}, "ssl": ssl_context}) #type:ignore
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 async def init_db():

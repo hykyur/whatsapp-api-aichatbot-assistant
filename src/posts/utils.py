@@ -9,8 +9,8 @@ OPENAI_API_KEY = config.OPENAI_API_KEY
 
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-async def store_message(session: AsyncSession, name: str, phone: str | None, role: MessageRole, status: MessageStatus, body: str):
-    stmt = select(User).where(User.phone == phone)
+async def store_message(session: AsyncSession, name: str, phone: str | None, bsuid:str, role: MessageRole, status: MessageStatus, body: str):
+    stmt = select(User).where(User.bsuid == bsuid)
     user = (await session.scalars(stmt)).first()
     if user is None:
         openai_token = None
@@ -18,7 +18,7 @@ async def store_message(session: AsyncSession, name: str, phone: str | None, rol
             conv = await client.conversations.create()
             openai_token = conv.id
 
-        user = User(name=name, phone=phone, openai_token=openai_token)
+        user = User(name=name, phone=phone, openai_token=openai_token, bsuid=bsuid)
         session.add(user)
         await session.flush()
         await session.commit()
@@ -61,3 +61,5 @@ async def update_user_message_status(session: AsyncSession, user_id: int, status
 
 async def update_user_token(session: AsyncSession, user_id: int, token: str):
     await session.execute(update(User).where(User.id == user_id).values(openai_token=token))
+async def update_user_bsuid(session: AsyncSession, user_id: int, bsuid:str):
+    await session.execute(update(User).where(User.id == user_id).values(bsuid=bsuid))

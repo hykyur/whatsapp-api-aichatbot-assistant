@@ -10,8 +10,8 @@ router = APIRouter()
 
 @router.post("/whatsapp/webhook")
 async def read_message(request: Request):
-    json = await request.json()
-    parsed = Webhook.model_validate(json)
+    body = await request.body()
+    parsed = Webhook.model_validate_json(body)
 
     value = parsed.entry[0].changes[0].value
     if not value.messages or not value.contacts:
@@ -21,9 +21,13 @@ async def read_message(request: Request):
     if message.type != "text" or not message.text:
         return {"status": "ignored"}
 
-    name = value.contacts[0].profile.name
+    if value.contacts[0].profile is None:
+        name = None
+    else:
+        name = value.contacts[0].profile.name
     phone = value.contacts[0].wa_id
+    bsuid = value.contacts[0].user_id
     body = message.text.body
-    await enqueue_message_pipe(name, phone, body)
+    await enqueue_message_pipe(name, phone, bsuid, body)
 
     return {"status" : "queued"}

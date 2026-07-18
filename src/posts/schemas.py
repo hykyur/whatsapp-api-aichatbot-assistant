@@ -44,11 +44,12 @@ class Value(BaseModel):
     messages: Optional[list[Messages]] = None
 
 class Profile(BaseModel):
-    name: str
+    name: Optional[str] = None
 
 class Contacts(BaseModel):
-    profile: Profile
+    profile: Optional[Profile] = None
     wa_id: str
+    user_id: str
 
 class Changes(BaseModel):
     value: Value

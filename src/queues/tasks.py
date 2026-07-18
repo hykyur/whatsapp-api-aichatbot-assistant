@@ -15,17 +15,17 @@ META_API_TOKEN = config.META_API_TOKEN
 
 #TODO: IN CASE THAT THE DB DOESN'T HAVE THE TABLES, CREATE THEM AGAIN AT HAND.
 @broker.task
-async def add_message(name: str, phone: str, body: str) -> str:
+async def add_message(name: str, phone: str, bsuid:str, body: str) -> str:
     async with async_session() as session:
-        await store_message(session, name, phone,
+        await store_message(session, name, phone, bsuid,
                             MessageRole.user, MessageStatus.pending, body)
         await session.commit()
-    return phone
+    return bsuid
 
 @broker.task
-async def check_escalation(phone: str) -> int:
+async def check_escalation(bsuid: str) -> int:
     async with async_session() as session:
-        result = await session.execute(select(User.id).where(User.phone == phone))
+        result = await session.execute(select(User.id).where(User.bsuid == bsuid))
         user_id: int = result.scalar()
         await ai_check_escalation_token(session, user_id)
         return user_id
@@ -60,18 +60,25 @@ async def send_response(payload: tuple[int, int]):
         )
         reply = reply_res.scalar()
 
-        phone_res = await session.execute(
-            select(User.phone).where(User.id == user_id)
+        info_res = await session.execute(
+            select(User.phone, User.bsuid).where(User.id == user_id)
         )
-        phone = phone_res.scalar()
+        info = info_res.first()
+        if info is None:
+            print("No user found for user_id=%s", user_id)
+            return
 
-    # outside async with: session closed, we just use reply/phone
+        phone = info[0]
+        bsuid = info[1]
+
+    # outside async with: session closed, we just use reply/phone/bsuid
     url = f"https://graph.facebook.com/{META_API_VERSION}/{BUSINESS_PHONE_ID}/messages"
 
     data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
         "to": phone,
+        #"recipient": bsuid,
         "type": "text",
         "text": {"body": reply},
     }
@@ -80,6 +87,7 @@ async def send_response(payload: tuple[int, int]):
         "Authorization": f"Bearer {META_API_TOKEN}",
         "Content-Type": "application/json",
     }
-
-    async with httpx.AsyncClient() as client:
-        await client.post(url, json=data, headers=headers)
+    transport = httpx.AsyncHTTPTransport(retries=1) # https://www.python-httpx.org/async/#explicit-transport-instances
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.post(url, json=data, headers=headers)
+        print(response.status_code, response.text)

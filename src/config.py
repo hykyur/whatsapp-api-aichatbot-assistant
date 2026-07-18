@@ -21,7 +21,7 @@ class Config(BaseSettings):
 
     ENVIRONMENT:Environment = Environment.STAGING
 
-    BUSINESS: Business = Business.HOTEL
+    BUSINESS: Business = "HOTEL"
 
     BUSINESS_PHONE_ID: str
 

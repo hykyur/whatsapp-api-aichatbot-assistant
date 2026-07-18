@@ -4,6 +4,7 @@ from pathlib import Path
 uvicorn_path = Path(".venv/bin/uvicorn")
 taskiq_path = Path(".venv/bin/taskiq")
 
+# docker run --rm -d -p 5672:5672 -p 15672:15672 --env RABBITMQ_DEFAULT_USER=guest --env RABBITMQ_DEFAULT_PASS=guest --env RABBITMQ_DEFAULT_VHOST=/ rabbitmq:3.8.27-management-alpine
 try:
     subprocess.run(
         [
@@ -22,7 +23,7 @@ try:
 except subprocess.CalledProcessError as e:
     print("RabbitMQ failed to start.")
     print(e.stderr)
-
+# docker run --rm -d -p 6379:6379 redis
 try:
     subprocess.run(
         ["docker", "run", "--rm", "-d", "-p", "6379:6379", "redis"],
@@ -33,7 +34,7 @@ try:
 except subprocess.CalledProcessError as e:
     print("Redis failed to start.")
     print(e.stderr)
-
+# taskiq worker src.queues.broker:broker src.queues.tasks
 try:
     taskiq_proc = subprocess.Popen(
         [str(taskiq_path), "worker", "src.queues.broker:broker", "src.queues.tasks"]
