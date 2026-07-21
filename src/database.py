@@ -28,7 +28,7 @@ DATABASE_URL = str(config.DATABASE_URL)
 ssl_context = ssl.create_default_context()
 # https://docs.sqlalchemy.org/en/20/core/pooling.html#disconnect-handling-pessimistic
 engine = create_async_engine(DATABASE_URL, pool_pre_ping=True, connect_args={"server_settings": {"jit": "off"}, "ssl": ssl_context}) #type:ignore
-async_session = async_sessionmaker(engine, expire_on_commit=False)
+async_session = async_sessionmaker(engine, expire_on_commit=False) #autoflush is false by default in sqlalchemy 2.0
 
 async def init_db():
     async with engine.begin() as conn:
@@ -36,4 +36,9 @@ async def init_db():
 
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with async_session() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except:
+            await session.rollback()
+            raise

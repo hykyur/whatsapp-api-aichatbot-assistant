@@ -41,12 +41,17 @@ def get_text(response):
         pass
     return ""
 
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
+async def _call_responses(**kwargs) -> str:
+    response = await client.with_options(timeout=100.0).responses.create(**kwargs)
+    return get_text(response)
+
 async def log_raise(session, e):
     decision = handle_openai_error(e)
     now = datetime.now().strftime('%a %d %b %Y, %I:%M%p')
 
-    await store_message(session, "system", None, MessageRole.system, MessageStatus.sent,
-                        f"{decision.message}, TIME: {now}")
+    await store_message(session, "system", None, bsuid="system", role=MessageRole.system, status=MessageStatus.sent,
+                        body=f"{decision.message}, TIME: {now}")
 
     if decision.action == OpenAIAction.CHECK_NETWORK:
         raise RuntimeError("OpenAI network error") from e
@@ -78,7 +83,6 @@ async def get_conversation_token(session: AsyncSession, user_id: int) -> str | N
     else:
         return conversation
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
 async def ai_check_escalation_fallback(session: AsyncSession, user_id: int):
     new_conversation_id = await create_conversation_token()
     await update_user_token(session, user_id, new_conversation_id)
@@ -89,35 +93,28 @@ async def ai_check_escalation_fallback(session: AsyncSession, user_id: int):
         parsed.append({"role": message.role, "content": message.body})
 
     try:
-        response = await client.with_options(timeout = 100.0).responses.create(
+        text = await _call_responses(
             model=LLM_MODEL,
-            instructions="""
-                    You evaluate whether the conversation needs escalation to a human.
-                    You must answer ONLY with:
-                    - needs escalation
-                    - no escalation
-                    No punctuation. No explanation.
-                    This is the history of the conversation, since the conversation ID of your API expired, this conversation will replace it.
-                    """,
+            instructions="You evaluate whether the conversation needs escalation to a human. ...",
             temperature=0,
             input=parsed,
-            conversation = new_conversation_id
+            conversation=new_conversation_id,
         )
-        text = get_text(response).strip().lower()
-        if text == "needs escalation":
+        if text.strip().lower() == "needs escalation":
             await update_user_message_status(session, user_id, MessageStatus.escalated)
-        else:
-            pass
     except Exception as e:
         await log_raise(session, e)
 
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
-async def ai_check_escalation_token(session: AsyncSession, user_id:int) -> bool:
+async def ai_check_escalation_token(session: AsyncSession, user_id: int) -> bool | None:
     try:
-        query = select(Message).where(Message.user_id == user_id).where(Message.role == MessageRole.user).order_by(Message.created_at.desc())
-        last_user_message: Message = (await session.scalars(query)).first()
-        response = await client.with_options(timeout = 100.0).responses.create(
+        query = (select(Message)
+                 .where(Message.user_id == user_id)
+                 .where(Message.role == MessageRole.user)
+                 .order_by(Message.created_at.desc()))
+        last_user_message = (await session.scalars(query)).first()
+
+        text = await _call_responses(
             model=LLM_MODEL,
             instructions="""
             You evaluate whether the conversation needs escalation to a human.
@@ -129,40 +126,47 @@ async def ai_check_escalation_token(session: AsyncSession, user_id:int) -> bool:
             """,
             temperature=0,
             input=last_user_message.body,
-            conversation = await get_conversation_token(session, user_id)
+            conversation=await get_conversation_token(session, user_id),
         )
-        text = get_text(response).strip().lower()
-        if text == "needs escalation":
+        if text.strip().lower() == "needs escalation":
             await update_user_message_status(session, user_id, MessageStatus.escalated)
             return True
-        else:
-            return False
-
+        return False
     except Exception as e:
         await log_raise(session, e)
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
 async def ai_reformulates(session: AsyncSession, user_id: int, sys_message: Message):
     try:
-        response = await client.with_options(timeout = 100.0).responses.create(
+        text = await _call_responses(
             model=LLM_MODEL,
             instructions="""
             Rewrite the following message to be more formal and professional.
             Do not change its meaning.
             Only output the rewritten message.
             """,
-            input=sys_message.body
+            input=sys_message.body,
         )
-        text = get_text(response)
-        await store_message_user_id(session, user_id, MessageRole.assistant, MessageStatus.ai_handled, text)
-
+        msg = Message(user_id=user_id, role=MessageRole.assistant,
+                      status=MessageStatus.ai_handled, body=text)
+        session.add(msg)
+        await session.flush()
     except Exception as e:
         await log_raise(session, e)
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
 async def ai_response(session: AsyncSession, user_id: int) -> Message | None:
+    stmt = (
+        select(Message, User.openai_token)
+        .join(User, Message.user_id == User.id)
+        .where(Message.user_id == user_id)
+        .where(Message.role == MessageRole.user)
+        .order_by(Message.created_at.desc())
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    row = result.first()
+    last_msg, conv_token = row if row else (None, None)
     try:
-        response = await client.with_options(timeout = 100.0).responses.create(
+        text = await _call_responses(
             model=LLM_MODEL,
             instructions=f"""
             You are a professional customer support assistant for a {BUSINESS}.
@@ -170,13 +174,12 @@ async def ai_response(session: AsyncSession, user_id: int) -> Message | None:
             Only output the reply to the client. Do not include explanations.
             """,
             temperature=0.3,
-            input='',
-            conversation = await get_conversation_token(session, user_id)
+            input=last_msg.body if last_msg else '',
+            conversation = conv_token
         )
-        text = get_text(response)
-        await store_message_user_id(session, user_id, MessageRole.assistant, MessageStatus.ai_handled, text)
-        stmt = select(Message).where(Message.user_id == user_id).where(Message.role == MessageRole.assistant).order_by(Message.created_at.desc()).limit(1)
-        return (await session.scalars(stmt)).first()
-
+        msg = Message(user_id=user_id, role=MessageRole.assistant, status=MessageStatus.ai_handled, body=text)
+        session.add(msg)
+        await session.flush()
+        return msg
     except Exception as e:
         await log_raise(session, e)

@@ -26,8 +26,7 @@ async def verify_webhook(request: Request):
     challenge = request.query_params.get("hub.challenge")
 
     if mode == "subscribe" and token == META_VERIFY_TOKEN:
-        return int(challenge)
+        return Response(content=challenge, media_type="text/plain", status_code=200)
 
-    return Response(status_code=200)
-
+    return Response(status_code=403)
 

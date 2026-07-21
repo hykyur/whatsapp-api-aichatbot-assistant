@@ -43,6 +43,7 @@ except Exception as e:
     print("Something went wrong with taskiq worker start")
     print(e)
 
+# uvicorn main:app --reload --port 5000
 try:
     uvicorn_proc = subprocess.Popen(
         [str(uvicorn_path), "main:app", "--reload", "--port", "5000"]
