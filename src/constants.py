@@ -4,6 +4,7 @@ class Environment(str, Enum):
     TESTING = "TESTING"
     STAGING = "STAGING"
     PRODUCTION = "PRODUCTION"
+    PYTEST = "pytest"
 
 class Business(str, Enum):
     HOTEL = "HOTEL"

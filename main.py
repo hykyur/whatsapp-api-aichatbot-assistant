@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException
 
 from src.posts.router import router as posts_router
 from contextlib import asynccontextmanager
@@ -28,5 +28,5 @@ async def verify_webhook(request: Request):
     if mode == "subscribe" and token == META_VERIFY_TOKEN:
         return Response(content=challenge, media_type="text/plain", status_code=200)
 
-    return Response(status_code=403)
+    raise HTTPException(status_code=400, detail="Verification failed.")
 

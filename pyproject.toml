@@ -13,13 +13,34 @@ dependencies = [
     "openai>=2.32.0",
     "pydantic>=2.13.3",
     "pydantic-settings>=2.14.0",
+    "pytest-env>=1.7.0",
     "python-dotenv>=1.2.2",
+    "pyzmq>=27.1.0",
     "requests>=2.33.1",
     "sqlalchemy[asyncio]>=2.0.49",
     "taskiq>=0.12.4",
     "taskiq-aio-pika>=0.6.0",
+    "taskiq-fastapi>=0.5.0",
     "taskiq-pipelines>=0.1.4",
     "taskiq-redis>=1.2.3",
     "tenacity>=9.1.4",
     "uvicorn>=0.46.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "respx>=0.23.1",
+]
+
+[tool.pytest.ini_options]
+env = [
+    "ENVIRONMENT=pytest",
+    "DATABASE_URL=postgresql+asyncpg://test",
+    "OPENAI_API_KEY=test-open-ai-key",
+    "LLM_MODEL=gpt-5.4-nano-2026-03-17",
+    "META_API_VERSION=v25.0",
+    "BUSINESS_PHONE_ID=test-business-phone-id",
+    "META_API_TOKEN=test-meta-api-token",
+    "META_VERIFY_TOKEN=test-meta-verify-token",
 ]

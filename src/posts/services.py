@@ -1,50 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-import openai
-from openai import AsyncOpenAI
-
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_random_exponential, retry_if_exception_type,
-)  # for exponential backoff
-
 from src.config import config
-from src.posts.utils import store_message, store_message_user_id, update_user_message_status, update_user_token, read_user_conversation
+from src.posts.utils import store_message, update_user_message_status, update_user_token, read_user_conversation
 from src.models import MessageRole, MessageStatus, Message, User
+from src.posts.openai_client import _call_responses, create_conversation_token, get_conversation_token
 from src.posts.exceptions import handle_openai_error, OpenAIAction
 from src.posts.constants import LLM_MODEL
 from datetime import datetime
 
 #TODO: CHANGE THE MESSAGE STATUS BASED ON WHAT IS HAPPENING WITH THE MESSAGES
 
-RETRYABLE_OPENAI_ERRORS = (
-    openai.RateLimitError,
-    openai.APITimeoutError,
-    openai.InternalServerError,
-    openai.ConflictError,
-)
-
-OPENAI_API_KEY = config.OPENAI_API_KEY
-BUSINESS = config.BUSINESS
-
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-
-def get_text(response):
-    try:
-        for item in response.output:
-            for content in item.content:
-                if hasattr(content, "text"):
-                    return content.text
-    except Exception:
-        pass
-    return ""
-
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
-async def _call_responses(**kwargs) -> str:
-    response = await client.with_options(timeout=100.0).responses.create(**kwargs)
-    return get_text(response)
+BUSINESS = str(config.BUSINESS)
 
 async def log_raise(session, e):
     decision = handle_openai_error(e)
@@ -70,19 +37,6 @@ async def log_raise(session, e):
 
     raise
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3), retry=retry_if_exception_type(RETRYABLE_OPENAI_ERRORS), reraise=True)
-async def create_conversation_token() -> str:
-    conversation = await client.conversations.create()
-    return conversation.id
-
-async def get_conversation_token(session: AsyncSession, user_id: int) -> str | None:
-    statement = await session.execute(select(User.openai_token).where(User.id == user_id))
-    conversation = statement.scalar()
-    if conversation is None:
-        return None
-    else:
-        return conversation
-
 async def ai_check_escalation_fallback(session: AsyncSession, user_id: int):
     new_conversation_id = await create_conversation_token()
     await update_user_token(session, user_id, new_conversation_id)
@@ -95,7 +49,14 @@ async def ai_check_escalation_fallback(session: AsyncSession, user_id: int):
     try:
         text = await _call_responses(
             model=LLM_MODEL,
-            instructions="You evaluate whether the conversation needs escalation to a human. ...",
+            instructions="""
+            You evaluate whether the conversation needs escalation to a human.
+            You must answer ONLY with:
+            - needs escalation
+            - no escalation
+            No punctuation. No explanation.
+            The following input is the latest user message.
+            """,
             temperature=0,
             input=parsed,
             conversation=new_conversation_id,

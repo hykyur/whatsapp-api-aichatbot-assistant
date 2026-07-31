@@ -34,7 +34,7 @@ try:
 except subprocess.CalledProcessError as e:
     print("Redis failed to start.")
     print(e.stderr)
-# taskiq worker src.queues.broker:broker src.queues.tasks
+# uv run taskiq worker src.queues.broker:broker src.queues.tasks
 try:
     taskiq_proc = subprocess.Popen(
         [str(taskiq_path), "worker", "src.queues.broker:broker", "src.queues.tasks"]
@@ -43,7 +43,7 @@ except Exception as e:
     print("Something went wrong with taskiq worker start")
     print(e)
 
-# uvicorn main:app --reload --port 5000
+# uv run uvicorn main:app --reload --port 5000
 try:
     uvicorn_proc = subprocess.Popen(
         [str(uvicorn_path), "main:app", "--reload", "--port", "5000"]

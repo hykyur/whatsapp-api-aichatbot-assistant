@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Optional
 
+#TODO: DEAL WITH WEBHOOK EXTRA DATA
 class Fields(str, Enum):
     account_alerts = "account_alerts"
     account_review_update = "account_review_update"
