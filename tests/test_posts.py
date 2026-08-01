@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from src.models import User, Message, MessageRole, MessageStatus
 @pytest.mark.anyio
-async def test_store_webhook(client, db_session, webhook_payload_factory, text_message_factory, contact_factory, mock_openai):
+async def test_store_webhook(client, db_session, webhook_payload_factory, text_message_factory, contact_factory, mock_openai, mock_verify_webhook):
     payload = webhook_payload_factory(
         messages=[text_message_factory(from_="+999999999", body="test_body")],
         contacts=[contact_factory(wa_id="+999999999", bsuid="TT-3U90KFISDKAVIOJDO", name="test_name")],

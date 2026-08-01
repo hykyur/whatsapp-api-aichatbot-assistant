@@ -36,7 +36,7 @@ dev = [
 [tool.pytest.ini_options]
 env = [
     "ENVIRONMENT=pytest",
-    "DATABASE_URL=postgresql+asyncpg://test",
+    "DATABASE_URL=postgresql+asyncpg://postgres:123456789@localhost:5432/test",
     "OPENAI_API_KEY=test-open-ai-key",
     "LLM_MODEL=gpt-5.4-nano-2026-03-17",
     "META_API_VERSION=v25.0",

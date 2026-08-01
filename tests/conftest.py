@@ -1,4 +1,7 @@
 import os
+
+from _pytest import monkeypatch
+
 os.environ["ENVIRONMENT"] = "pytest"
 
 from collections.abc import AsyncGenerator
@@ -6,18 +9,18 @@ import pytest
 from httpx import  ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
-import ssl
 import taskiq_fastapi
+
 from src.queues.broker import broker
 from src.models import Base
 from src.database import init_db
 import src.posts.openai_client as services
+import src.posts.router as router
 import src.posts.utils as utils
 from main import app
 import time
 
 pytest_plugins = ["anyio"]
-ssl_context = ssl.create_default_context()
 
 @pytest.fixture(scope="session")
 def anyio_backend():
@@ -58,6 +61,16 @@ def mock_openai(monkeypatch):
         mock_create_conversation_token,
     )
 
+@pytest.fixture(autouse=True)
+def mock_verify_webhook(monkeypatch):
+    def mock_verify_signature(*args, **kwargs):
+        return True
+
+    monkeypatch.setattr(
+        router,
+        "verify_signature",
+        mock_verify_signature,
+    )
 
 @pytest.fixture(scope="session")
 def test_engine():
@@ -65,7 +78,7 @@ def test_engine():
         os.environ["DATABASE_URL"],
         poolclass=NullPool,
         pool_pre_ping=True,
-        connect_args={"server_settings": {"jit": "off"}, "statement_cache_size": 0, "ssl": ssl_context},
+        connect_args={"server_settings": {"jit": "off"}, "statement_cache_size": 0, "ssl":"disable"},
     )
     return engine
 

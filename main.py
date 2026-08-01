@@ -4,13 +4,23 @@ from src.posts.router import router as posts_router
 from contextlib import asynccontextmanager
 from src.database import init_db
 from src.config import config
-
+from src.queues.broker import broker
 META_VERIFY_TOKEN = config.META_VERIFY_TOKEN
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    if not broker.is_worker_process:
+        print("Starting broker")
+        await broker.startup()
+        # print("Creating redis pool")
+        # app.state.redis_pool = ConnectionPool.from_url(config.REDIS_URL)
     yield
+    if not broker.is_worker_process:
+        print("Shutting down broker")
+        await broker.shutdown()
+    # print("Stopping redis pool")
+    # await app.state.redis_pool.disconnect()
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(posts_router)
@@ -29,4 +39,3 @@ async def verify_webhook(request: Request):
         return Response(content=challenge, media_type="text/plain", status_code=200)
 
     raise HTTPException(status_code=400, detail="Verification failed.")
-

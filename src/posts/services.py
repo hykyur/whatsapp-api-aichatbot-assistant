@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.config import config
-from src.posts.utils import store_message, update_user_message_status, update_user_token, read_user_conversation
+from src.posts.utils import store_message, update_user_message_status, update_message_status, update_user_token, read_user_conversation
 from src.models import MessageRole, MessageStatus, Message, User
 from src.posts.openai_client import _call_responses, create_conversation_token, get_conversation_token
 from src.posts.exceptions import handle_openai_error, OpenAIAction
@@ -17,7 +17,7 @@ async def log_raise(session, e):
     decision = handle_openai_error(e)
     now = datetime.now().strftime('%a %d %b %Y, %I:%M%p')
 
-    await store_message(session, "system", None, bsuid="system", role=MessageRole.system, status=MessageStatus.sent,
+    await store_message(session, "system", None, bsuid="system", wamid=None, role=MessageRole.system, status=MessageStatus.sent,
                         body=f"{decision.message}, TIME: {now}")
 
     if decision.action == OpenAIAction.CHECK_NETWORK:
@@ -35,7 +35,7 @@ async def log_raise(session, e):
     if decision.action == OpenAIAction.RECREATE_RESOURCE:
         raise LookupError("OpenAI resource not found") from e
 
-    raise
+    raise e
 
 async def ai_check_escalation_fallback(session: AsyncSession, user_id: int):
     new_conversation_id = await create_conversation_token()
@@ -107,10 +107,10 @@ async def ai_reformulates(session: AsyncSession, user_id: int, sys_message: Mess
             """,
             input=sys_message.body,
         )
-        msg = Message(user_id=user_id, role=MessageRole.assistant,
+        msg = Message(user_id=user_id, wamid=None,role=MessageRole.assistant,
                       status=MessageStatus.ai_handled, body=text)
         session.add(msg)
-        await session.flush()
+        await session.commit()
     except Exception as e:
         await log_raise(session, e)
 
@@ -138,9 +138,9 @@ async def ai_response(session: AsyncSession, user_id: int) -> Message | None:
             input=last_msg.body if last_msg else '',
             conversation = conv_token
         )
-        msg = Message(user_id=user_id, role=MessageRole.assistant, status=MessageStatus.ai_handled, body=text)
+        msg = Message(user_id=user_id, wamid=None, role=MessageRole.assistant, status=MessageStatus.pending, body=text)
         session.add(msg)
-        await session.flush()
+        await update_message_status(session, last_msg.id, MessageStatus.ai_handled)
         return msg
     except Exception as e:
         await log_raise(session, e)

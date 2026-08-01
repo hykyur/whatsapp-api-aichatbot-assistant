@@ -16,7 +16,7 @@ class User(Base):
     name: Mapped[str | None]
     phone: Mapped[str | None] = mapped_column(unique=True, index=True)
     openai_token: Mapped[str | None] = mapped_column(unique=True)
-    bsuid: Mapped[str | None] = mapped_column(nullable=True, unique=True)
+    bsuid: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 class MessageRole(str, Enum):
@@ -36,7 +36,8 @@ class Message(Base):
     __tablename__ = "message"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    wamid: Mapped[str | None] = mapped_column(unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     role: Mapped[MessageRole] = mapped_column(default=MessageRole.user)
     status: Mapped[MessageStatus]
     body: Mapped[str]
